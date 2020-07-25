@@ -19,17 +19,20 @@ model, serialnumber, location, firmware, hostname, domain, ip_address, subnet, g
 
 ## USAGE
 
-1. -ip or --ip_address
+* -ip or --ip_address
+
 ...Get singe device information, data is returned to csv file.
 
-2. -ipr or --ip_range
+* -ipr or --ip_range
+
 ...Scan IP range for devices and return information to csv file.
 
-3. -c or --community
+* -c or --community
+
 ...OPTIONAL: Change SNMP community name for query. Default value is public
 
 ## EXAMPLE
 
-*-ip 192.168.1.10
-*-ipr 192.168.1.1 192.168.1.255
-*--community private --ip_address 192.168.1.10
+* -ip 192.168.1.10
+* -ipr 192.168.1.1 192.168.1.255
+* --community private --ip_address 192.168.1.10
