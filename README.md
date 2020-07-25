@@ -19,15 +19,15 @@ model, serialnumber, location, firmware, hostname, domain, ip_address, subnet, g
 
 ## USAGE
 
-* -ip or --ip_address
+* **-ip or --ip_address**
 
    Get singe device information, data is returned to csv file.
 
-* -ipr or --ip_range
+* **-ipr or --ip_range**
 
    Scan IP range for devices and return information to csv file.
 
-* -c or --community
+* **-c or --community**
 
    OPTIONAL: Change SNMP community name for query. Default value is public
 
