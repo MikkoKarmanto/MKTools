@@ -255,7 +255,8 @@ def help():
     print("                                    | |    ")
     print("                                    |_|    ")
 
-    print("\nGet MFP device information from device via SNMP.")
+    print("\nDESCRIPTION: ")
+    print("Get MFP device information from device via SNMP.")
     print("Data returned from device:")
     print("model, serialnumber, location, firmware, hostname, domain, ip_address, subnet, gateway, primary_dns, secondary_dns")
 
