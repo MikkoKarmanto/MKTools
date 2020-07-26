@@ -4,6 +4,7 @@ from sys import argv
 from pythonping import ping
 from datetime import datetime
 import csv
+import ipaddress
 
 
 def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
@@ -172,29 +173,20 @@ def ping_sweep(start, end):
         active_hosts          : List of ip adresses that responded to ping.
     """
     start_time = datetime.now()
-    start_ip = start.split('.')
-    end_ip = end.split('.')
+    start_ip = int(ipaddress.IPv4Address(start))
+    end_ip = int(ipaddress.IPv4Address(end))
 
-    if (len(start_ip) == 4 and len(end_ip) == 4):
-        print('Scanning devices...')
-        active_hosts = []
-        count = 0
-        for ip in progressBar(range(int(start_ip[3]), int(end_ip[3]) + 1)):
-            address = None
-            for num in start_ip[:-1]:
-                if (address is None):
-                    address = num
-                else:
-                    address += f'.{num}'
-            address += f'.{str(ip)}'
-            if (ping_check(address)):
-                count += 1
-                active_hosts.append(address)
-        print(f'{count} active hosts found: {active_hosts}')
-    else:
-        print('IP in wrong format.')
+    print('Scanning devices...')
+    active_hosts = []
+    count = 0
+    for ip in progressBar(range(start_ip, end_ip + 1), prefix='|'):
+        address = str(ipaddress.IPv4Address(ip))
+        if (ping_check(address)):
+            count += 1
+            active_hosts.append(address)
+    print(f'{count} active hosts found: {active_hosts}')
+
     end_time = datetime.now()
-
     print(f'Scanning devices from network copleted in: {end_time - start_time}\n')
 
     return active_hosts
@@ -329,8 +321,13 @@ def main():
 
         if (arg.lower() == "-ipr" or arg.lower() == "--ip_range"):
             try:
-                start_ip = argv[index]
-                end_ip = argv[index + 1]
+
+                if (len(argv[index].rsplit('/')) > 1):
+                    start_ip = ipaddress.IPv4Network(argv[index]).network_address
+                    end_ip = ipaddress.IPv4Network(argv[index]).broadcast_address
+                else:
+                    start_ip = argv[index]
+                    end_ip = argv[index + 1]
             except IndexError:
                 print('\nERROR: Incorrect use of ip range. Give two ip addresses separeted by space or use flag -ip instead\n')
                 print('EXAMPLE: \n-ipr 192.168.1.1 192.168.1.10')
