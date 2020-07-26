@@ -283,7 +283,9 @@ def help():
     print("\nEXAMPLE: ")
     print(" -ip 192.168.1.10")
     print(" -ipr 192.168.1.1 192.168.1.255")
+    print(" -ipr 192.168.1.0/24")
     print(" --community private --ip_address 192.168.1.10")
+    print('-ip 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
 
 
 def main():
