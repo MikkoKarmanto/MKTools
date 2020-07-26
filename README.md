@@ -31,8 +31,15 @@ model, serialnumber, location, firmware, hostname, domain, ip_address, subnet, g
 
    OPTIONAL: Change SNMP community name for query. Default value is public
 
+* **-s or --set**
+
+   Write new value to OID in device.
+
 ## EXAMPLE
 
 * -ip 192.168.1.10
 * -ipr 192.168.1.1 192.168.1.255
 * --community private --ip_address 192.168.1.10
+* -ipr 192.168.1.0/24
+* --community private --ip_address 192.168.1.10
+* -ip 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"
