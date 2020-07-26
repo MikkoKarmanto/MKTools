@@ -46,6 +46,20 @@ def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=h
 
 
 def snmp_set(target, value_pairs, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
+    """
+    Constuctor function for setting OID data to device. Values set are returned back.
+
+    @params:
+        target          - Required  : IP address of the device (Str)
+        value_pairs     - Required  : Dictionary of OIDs and values, where OID is the key. (Dict)
+        credentials     - Required  : SNMP community name (Str)
+        port            - Optional  : UDP port for SNMP request (Int)
+        engine          - Optional  : SNMP engine for request, from pysnmp hlapi (Obj)
+        context         - Optional  : SNMP context data for request, from pysnmp hlapi (Obj)
+
+    @return:
+        fetch()                     : Dictionary of OID values from fetch function.
+    """
     handler = hlapi.setCmd(
         engine,
         credentials,
@@ -138,6 +152,8 @@ def fetch(handler, count):
                 for var_bind in var_binds:
                     items[str(var_bind[0])] = cast(var_bind[1])
                 result = items
+            else:
+                print(error_status)
         except Exception as e:
             print(e)
     return result
@@ -370,6 +386,8 @@ def main():
         if (len(results) != 0):
             print('Values successfully writen to device.')
             print(results)
+        else:
+            print('Were not able to write data to device. Please check OID and communityname.')
 
     if (write is False and address is not None):
         print(f'Connecting to address: {address}')
