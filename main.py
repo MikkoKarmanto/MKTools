@@ -7,19 +7,19 @@ import csv
 import ipaddress
 
 
-def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
+def snmp_get(target, communityname, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
     """
     Constuctor function for fetching OID data from device.
 
     @params:
-        target          - Required  : IP address of the device (Str)
-        credentials     - Required  : SNMP community name (Str)
-        port            - Optional  : UDP port for SNMP request (Int)
-        engine          - Optional  : SNMP engine for request, from pysnmp hlapi (Obj)
-        context         - Optional  : SNMP context data for request, from pysnmp hlapi (Obj)
+        target            - Required  : IP address of the device (Str)
+        communityname     - Required  : SNMP community name (Str)
+        port              - Optional  : UDP port for SNMP request (Int)
+        engine            - Optional  : SNMP engine for request, from pysnmp hlapi (Obj)
+        context           - Optional  : SNMP context data for request, from pysnmp hlapi (Obj)
 
     @return:
-        fetch()                     : Dictionary of OID values from fetch function.
+        fetch()           : Dictionary of OID values from fetch function.
     """
     model = '.1.3.6.1.2.1.1.1.0'
     serial = '.1.3.6.1.2.1.43.5.1.1.17.1'
@@ -37,7 +37,7 @@ def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=h
 
     handler = hlapi.getCmd(
         engine,
-        credentials,
+        communityname,
         hlapi.UdpTransportTarget((target, port)),
         context,
         *construct_object_types(oids)
@@ -45,24 +45,24 @@ def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=h
     return fetch(handler, 1)
 
 
-def snmp_set(target, value_pairs, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
+def snmp_set(target, value_pairs, communityname, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
     """
     Constuctor function for setting OID data to device. Values set are returned back.
 
     @params:
-        target          - Required  : IP address of the device (Str)
-        value_pairs     - Required  : Dictionary of OIDs and values, where OID is the key. (Dict)
-        credentials     - Required  : SNMP community name (Str)
-        port            - Optional  : UDP port for SNMP request (Int)
-        engine          - Optional  : SNMP engine for request, from pysnmp hlapi (Obj)
-        context         - Optional  : SNMP context data for request, from pysnmp hlapi (Obj)
+        target            - Required  : IP address of the device (Str)
+        value_pairs       - Required  : Dictionary of OIDs and values, where OID is the key. (Dict)
+        communityname     - Required  : SNMP community name (Str)
+        port              - Optional  : UDP port for SNMP request (Int)
+        engine            - Optional  : SNMP engine for request, from pysnmp hlapi (Obj)
+        context           - Optional  : SNMP context data for request, from pysnmp hlapi (Obj)
 
     @return:
-        fetch()                     : Dictionary of OID values from fetch function.
+        fetch()           : Dictionary of OID values from fetch function.
     """
     handler = hlapi.setCmd(
         engine,
-        credentials,
+        communityname,
         hlapi.UdpTransportTarget((target, port)),
         context,
         *construct_value_pairs(value_pairs)
@@ -153,7 +153,8 @@ def fetch(handler, count):
                     items[str(var_bind[0])] = cast(var_bind[1])
                 result = items
             else:
-                print(error_status)
+                if (error_status != 0):
+                    print(error_status)
         except Exception as e:
             print(e)
     return result
@@ -177,7 +178,7 @@ def ping_check(host):
     return False
 
 
-def ping_sweep(start, end):
+def ping_sweep(start, end, silent=False):
     """
     Scan network range for devices with ping.
 
@@ -191,41 +192,63 @@ def ping_sweep(start, end):
     start_time = datetime.now()
     start_ip = int(ipaddress.IPv4Address(start))
     end_ip = int(ipaddress.IPv4Address(end))
-
-    print('Scanning devices...')
     active_hosts = []
     count = 0
+
+    print('Scanning devices...')
     for ip in progressBar(range(start_ip, end_ip + 1), prefix='|'):
         address = str(ipaddress.IPv4Address(ip))
         if (ping_check(address)):
             count += 1
             active_hosts.append(address)
-    print(f'{count} active hosts found: {active_hosts}')
+    if (not silent):
+        print(f'{count} active hosts found: {active_hosts}')
 
-    end_time = datetime.now()
-    print(f'Scanning devices from network copleted in: {end_time - start_time}\n')
+        end_time = datetime.now()
+        print(f'Scanning devices from network copleted in: {end_time - start_time}\n')
 
     return active_hosts
 
 
-def get_device_info(hosts, credentials):
+def get_device_info(hosts, communityname, silent=False):
     """
     Get oid values from device.
 
     @params:
-        hosts         - Required  : list of IP adresses (Str list)
-        credentials   - Required  : SNMP community name (Str)
+        hosts           - Required  : list of IP adresses (Str list)
+        communityname   - Required  : SNMP community name (Str)
 
     @return:
-        results      : List of dictionary containing oids and values (list dict)
+        results         : List of dictionary containing oids and values (list dict)
     """
-    print('Starting to collect information...')
     results = []
-    for host in progressBar(hosts):
-        data = snmp_get(host, credentials)
+
+    def get_data():
+        data = snmp_get(host, communityname)
         if (data is not None and len(data) > 0):
+            data['response_address'] = host
             results.append(data)
+
+    if (not silent):
+        print('Starting to collect information...')
+
+        for host in progressBar(hosts):
+            get_data()
+
+    else:
+        print('Looking for serialnumber...')
+        for host in hosts:
+            get_data()
+
     return results
+
+
+def get_device_by_serial(serialnumber, active_hosts, community):
+    dataset = get_device_info(active_hosts, community, True)
+    for data in dataset:
+        if (data['1.3.6.1.2.1.43.5.1.1.17.1'] == serialnumber):
+            return data
+    return []
 
 
 def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
@@ -314,6 +337,7 @@ def main():
     value = None
     start_ip = None
     end_ip = None
+    serialnumber = None
     community = hlapi.CommunityData('public')
 
     for index, arg in enumerate(argv):
@@ -327,7 +351,7 @@ def main():
                 print(f'community name changed: {argv[index]}')
                 community = hlapi.CommunityData(argv[index])
             except IndexError:
-                print('\nERROR: Incorrect use of community. No value was given.\n')
+                print('\nERROR: Incorrect use of community. No value given for one or more required parameters.\n')
                 print('EXAMPLE: \n-c public')
                 raise SystemExit
 
@@ -335,14 +359,13 @@ def main():
             try:
                 address = argv[index]
             except IndexError:
-                print('\nERROR: Incorrect use of ip address. No value was given.\n')
+                print('\nERROR: Incorrect use of ip address. No value given for one or more required parameters.\n')
                 print('EXAMPLE: \n-ip 192.168.1.10')
                 raise SystemExit
             execute = True
 
         if (arg.lower() == "-ipr" or arg.lower() == "--ip_range"):
             try:
-
                 if (len(argv[index].rsplit('/')) > 1):
                     start_ip = ipaddress.IPv4Network(argv[index]).network_address
                     end_ip = ipaddress.IPv4Network(argv[index]).broadcast_address
@@ -366,8 +389,14 @@ def main():
             write = True
             execute = True
 
-        if (arg.lower() == "-t" or arg.lower() == "--test"):
-            pass
+        if (arg.lower() == "-f" or arg.lower() == "--find_serial"):
+            try:
+                serialnumber = argv[index]
+            except IndexError:
+                print('\nERROR: Incorrect use of find serial. No value given for one or more required parameters.')
+                print('EXAMPLE: \n-f AA2K027512345 -ipr 192.168.1.1 192.168.1.10\n-f AA2K027512345 -ipr 192.168.1.0/24')
+                raise SystemExit
+            execute = True
 
     if (address is None and execute is False):
         help()
@@ -378,7 +407,7 @@ def main():
         dataset = {}
         dataset[oid] = value
         if (address is None):
-            print('\nERROR: IP address not given. --set also reguires use of --ip_address or -ip\n')
+            print('\nERROR: IP address not given. --set also requires use of --ip_address or -ip\n')
             print('EXAMPLE: \n-ip_address 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
             raise SystemExit
         results = snmp_set(address, dataset, community)
@@ -393,10 +422,23 @@ def main():
         print(f'Connecting to address: {address}')
         print(snmp_get(address, community))
 
-    if (execute and start_ip is not None and end_ip is not None):
-        active = ping_sweep(start_ip, end_ip)
+    if (execute):
+        if (serialnumber is not None and start_ip is None or end_ip is None):
+            print('\nERROR: IP address range not given. --find_serial also requires use of --ip_range or -ipr\n')
+            print('EXAMPLE: \n-f AA2K027512345 -ipr 192.168.1.1 192.168.1.10\n-f AA2K027512345 -ipr 192.168.1.0/24')
+            raise SystemExit
+        if (start_ip is not None and end_ip is not None):
+            if (serialnumber is not None):
+                active = ping_sweep(start_ip, end_ip, silent=True)
+            else:
+                active = ping_sweep(start_ip, end_ip)
+
         if (len(active) > 0):
-            data = get_device_info(active, community)
+            data = []
+            if (serialnumber is not None):
+                result = get_device_by_serial(serialnumber, active, community)
+            else:
+                data = get_device_info(active, community)
         else:
             raise SystemExit
         if (len(data) > 0):
@@ -406,6 +448,10 @@ def main():
             else:
                 print(f'Data received from {len(data)} device(s).')
             to_csv(data)
+        elif (len(result) > 0):
+            print(f'\nFound device with serialnumber {serialnumber} from address {result["response_address"]}.\n')
+        elif (len(result) == 0):
+            print(f'\nNo device found with serialnumber {serialnumber}.\n')
         else:
             print(f'Were not able to get any data from {len(active)} device(s).')
             print(active)
