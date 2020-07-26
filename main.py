@@ -358,13 +358,18 @@ def main():
         raise SystemExit
 
     if (write and oid is not None and value is not None):
+        print(f'Connecting to address: {address}')
         dataset = {}
         dataset[oid] = value
         if (address is None):
             print('\nERROR: IP address not given. --set also reguires use of --ip_address or -ip\n')
             print('EXAMPLE: \n-ip_address 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
             raise SystemExit
-        print(snmp_set(address, dataset, community))
+        results = snmp_set(address, dataset, community)
+
+        if (len(results) != 0):
+            print('Values successfully writen to device.')
+            print(results)
 
     if (write is False and address is not None):
         print(f'Connecting to address: {address}')
@@ -377,6 +382,11 @@ def main():
         else:
             raise SystemExit
         if (len(data) > 0):
+            difference = len(active) - len(data)
+            if (difference != 0):
+                print(f'Data received from {len(data)} device(s). Were not able to get any data from {difference} device(s).')
+            else:
+                print(f'Data received from {len(data)} device(s).')
             to_csv(data)
         else:
             print(f'Were not able to get any data from {len(active)} device(s).')
