@@ -6,7 +6,7 @@ from datetime import datetime
 import csv
 
 
-def get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
+def snmp_get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
     """
     Constuctor function for fetching OID data from device.
 
@@ -44,6 +44,17 @@ def get(target, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.
     return fetch(handler, 1)
 
 
+def snmp_set(target, value_pairs, credentials, port=161, engine=hlapi.SnmpEngine(), context=hlapi.ContextData()):
+    handler = hlapi.setCmd(
+        engine,
+        credentials,
+        hlapi.UdpTransportTarget((target, port)),
+        context,
+        *construct_value_pairs(value_pairs)
+    )
+    return fetch(handler, 1)
+
+
 def to_csv(row, filename='Device_data.csv'):
     """
     Writes list list of dictionary values to csv file.
@@ -74,6 +85,13 @@ def construct_object_types(list_of_oids):
     for oid in list_of_oids:
         object_types.append(hlapi.ObjectType(hlapi.ObjectIdentity(oid)))
     return object_types
+
+
+def construct_value_pairs(list_of_pairs):
+    pairs = []
+    for key, value in list_of_pairs.items():
+        pairs.append(hlapi.ObjectType(hlapi.ObjectIdentity(key), value))
+    return pairs
 
 
 def cast(value):
@@ -119,8 +137,6 @@ def fetch(handler, count):
                 for var_bind in var_binds:
                     items[str(var_bind[0])] = cast(var_bind[1])
                 result = items
-            else:
-                print(f'Got SNMP error: {error_indication}')
         except Exception as e:
             print(e)
     return result
@@ -197,14 +213,10 @@ def get_device_info(hosts, credentials):
     """
     print('Starting to collect information...')
     results = []
-    for host in hosts:
-        print(f'Getting device information from host: {host}')
-        data = get(host, credentials)
+    for host in progressBar(hosts):
+        data = snmp_get(host, credentials)
         if (data is not None and len(data) > 0):
-            print('Storing information.')
             results.append(data)
-        else:
-            print('Device did not return any data.')
     return results
 
 
@@ -213,8 +225,7 @@ def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='â–
     Call in a loop to create terminal progress bar.
 
     @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
+        iterable    - Required  : current iteration (Int)
         prefix      - Optional  : prefix string (Str)
         suffix      - Optional  : suffix string (Str)
         decimals    - Optional  : positive number of decimals in percent complete (Int)
@@ -223,17 +234,21 @@ def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='â–
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
     total = len(iterable)
+    _prefix = prefix
 
     # Progress Bar Printing Function
     def printProgressBar(iteration):
         percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
         filledLength = int(length * iteration // total)
         bar = fill * filledLength + '-' * (length - filledLength)
-        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+        print(f'\r{_prefix} |{bar}| {percent}% {suffix}', end=printEnd)
     # Initial Call
     printProgressBar(0)
     # Update Progress Bar
     for i, item in enumerate(iterable):
+        if (prefix == ''):
+            _prefix = item
+        printProgressBar(i)
         yield item
         printProgressBar(i + 1)
     # Print New Line on Complete
@@ -279,7 +294,15 @@ def help():
 def main():
     # get command line arguments
 
+    execute = False
+    address = None
+    write = False
+    oid = None
+    value = None
+    start_ip = None
+    end_ip = None
     community = hlapi.CommunityData('public')
+
     for index, arg in enumerate(argv):
         index += 1
         if (arg.lower() == "-h" or arg == "/?" or arg.lower() == "--help"):
@@ -287,21 +310,75 @@ def main():
             raise SystemExit
 
         if (arg.lower() == "-c" or arg.lower() == "--community"):
-            print(f'community name changed: {argv[index]}')
-            community = hlapi.CommunityData(argv[index])
+            try:
+                print(f'community name changed: {argv[index]}')
+                community = hlapi.CommunityData(argv[index])
+            except IndexError:
+                print('\nERROR: Incorrect use of community. No value was given.\n')
+                print('EXAMPLE: \n-c public')
+                raise SystemExit
 
         if (arg.lower() == "-ip" or arg.lower() == "--ip_address"):
-            print(f'Connecting to address: {argv[index]}')
-            print(get(argv[index], community))
+            try:
+                address = argv[index]
+            except IndexError:
+                print('\nERROR: Incorrect use of ip address. No value was given.\n')
+                print('EXAMPLE: \n-ip 192.168.1.10')
+                raise SystemExit
+            execute = True
 
         if (arg.lower() == "-ipr" or arg.lower() == "--ip_range"):
-            active = ping_sweep(argv[index], argv[index + 1])
-            data = get_device_info(active, community)
-            to_csv(data)
+            try:
+                start_ip = argv[index]
+                end_ip = argv[index + 1]
+            except IndexError:
+                print('\nERROR: Incorrect use of ip range. Give two ip addresses separeted by space or use flag -ip instead\n')
+                print('EXAMPLE: \n-ipr 192.168.1.1 192.168.1.10')
+                raise SystemExit
+            execute = True
+
+        if (arg.lower() == "-s" or arg.lower() == "--set"):
+            try:
+                oid = argv[index]
+                value = argv[index + 1]
+            except IndexError:
+                print('\nERROR: Incorrect use of set. Give OID and value separeted by space.\n')
+                print('EXAMPLE: \n-ip 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
+                raise SystemExit
+            write = True
+            execute = True
 
         if (arg.lower() == "-t" or arg.lower() == "--test"):
-            active = ping_sweep('192.168.1.170', '192.168.1.175')
-            get_device_info(active, community)
+            pass
+
+    if (address is None and execute is False):
+        help()
+        raise SystemExit
+
+    if (write and oid is not None and value is not None):
+        dataset = {}
+        dataset[oid] = value
+        if (address is None):
+            print('\nERROR: IP address not given. --set also reguires use of --ip_address or -ip\n')
+            print('EXAMPLE: \n-ip_address 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
+            raise SystemExit
+        print(snmp_set(address, dataset, community))
+
+    if (write is False and address is not None):
+        print(f'Connecting to address: {address}')
+        print(snmp_get(address, community))
+
+    if (execute and start_ip is not None and end_ip is not None):
+        active = ping_sweep(start_ip, end_ip)
+        if (len(active) > 0):
+            data = get_device_info(active, community)
+        else:
+            raise SystemExit
+        if (len(data) > 0):
+            to_csv(data)
+        else:
+            print(f'Were not able to get any data from {len(active)} device(s).')
+            print(active)
 
 
 if (__name__ == "__main__"):
@@ -309,7 +386,7 @@ if (__name__ == "__main__"):
         start_time = datetime.now()
         main()
         end_time = datetime.now()
-        print(f'Scanning copleted in: {end_time - start_time}')
+        print(f'Program copleted in: {end_time - start_time}')
     except Exception as e:
         end_time = datetime.now()
         print(f'Scanning failed in: {end_time - start_time}')
