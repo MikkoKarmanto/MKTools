@@ -275,7 +275,10 @@ def help():
     print("  Scan IP range for devices and return information to csv file.")
 
     print("\n -c or --community")
-    print("  OPTIONAL: Change SNMP community name for query. Default value is public")
+    print("  OPTIONAL: Change SNMP community name for query. Default value is public.")
+
+    print("\n -s or --set")
+    print("  Write new value to OID in device.")
 
     print("\nEXAMPLE: ")
     print(" -ip 192.168.1.10")
@@ -329,8 +332,8 @@ def main():
                     start_ip = argv[index]
                     end_ip = argv[index + 1]
             except IndexError:
-                print('\nERROR: Incorrect use of ip range. Give two ip addresses separeted by space or use flag -ip instead\n')
-                print('EXAMPLE: \n-ipr 192.168.1.1 192.168.1.10')
+                print('\nERROR: Incorrect use of ip range. Use CIDR notation or give two ip addresses separeted by space.')
+                print('EXAMPLE: \n-ipr 192.168.1.1 192.168.1.10\n-ipr 192.168.1.0/24')
                 raise SystemExit
             execute = True
 
