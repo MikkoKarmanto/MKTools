@@ -33,7 +33,8 @@ def snmp_get(target, communityname, port=161, engine=hlapi.SnmpEngine(), context
     primary_dns = '.1.3.6.1.4.1.18334.1.1.2.1.5.7.1.2.1.3.1.1'
     secondary_dns = '.1.3.6.1.4.1.18334.1.1.2.1.5.7.1.2.1.3.1.2'
 
-    oids = [model, serial, location, firmware, hostname, domain, ip_address, subnet, gateway, primary_dns, secondary_dns]
+    oids = [model, serial, location, firmware, hostname, domain,
+            ip_address, subnet, gateway, primary_dns, secondary_dns]
 
     handler = hlapi.getCmd(
         engine,
@@ -78,10 +79,10 @@ def to_csv(row, filename='Device_data.csv'):
         row             - Required  : list of dictionary values (list dict).
         filename        - Optional  : filename and realtive or absolute save path for device data csv. (Str)
     """
-    with open(filename, 'w', newline='') as csvfile:
+    with open(filename, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(['model',
-                         'serial',
+                        'serial',
                          'location',
                          'firmware',
                          'hostname',
@@ -146,7 +147,8 @@ def fetch(handler, count):
     result = {}
     for i in range(count):
         try:
-            error_indication, error_status, error_index, var_binds = next(handler)
+            error_indication, error_status, error_index, var_binds = next(
+                handler)
             if not error_indication and not error_status:
                 items = {}
                 for var_bind in var_binds:
@@ -205,7 +207,8 @@ def ping_sweep(start, end, silent=False):
         print(f'{count} active hosts found: {active_hosts}')
 
         end_time = datetime.now()
-        print(f'Scanning devices from network copleted in: {end_time - start_time}\n')
+        print(
+            f'Scanning devices from network copleted in: {end_time - start_time}\n')
 
     return active_hosts
 
@@ -269,7 +272,8 @@ def progressBar(iterable, prefix='', suffix='', decimals=1, length=100, fill='â–
 
     # Progress Bar Printing Function
     def printProgressBar(iteration):
-        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        percent = ("{0:." + str(decimals) + "f}").format(100 *
+                                                         (iteration / float(total)))
         filledLength = int(length * iteration // total)
         bar = fill * filledLength + '-' * (length - filledLength)
         print(f'\r{_prefix} |{bar}| {percent}% {suffix}', end=printEnd)
@@ -351,7 +355,8 @@ def main():
                 print(f'community name changed: {argv[index]}')
                 community = hlapi.CommunityData(argv[index])
             except IndexError:
-                print('\nERROR: Incorrect use of community. No value given for one or more required parameters.\n')
+                print(
+                    '\nERROR: Incorrect use of community. No value given for one or more required parameters.\n')
                 print('EXAMPLE: \n-c public')
                 raise SystemExit
 
@@ -359,7 +364,8 @@ def main():
             try:
                 address = argv[index]
             except IndexError:
-                print('\nERROR: Incorrect use of ip address. No value given for one or more required parameters.\n')
+                print(
+                    '\nERROR: Incorrect use of ip address. No value given for one or more required parameters.\n')
                 print('EXAMPLE: \n-ip 192.168.1.10')
                 raise SystemExit
             execute = True
@@ -367,13 +373,16 @@ def main():
         if (arg.lower() == "-ipr" or arg.lower() == "--ip_range"):
             try:
                 if (len(argv[index].rsplit('/')) > 1):
-                    start_ip = ipaddress.IPv4Network(argv[index]).network_address
-                    end_ip = ipaddress.IPv4Network(argv[index]).broadcast_address
+                    start_ip = ipaddress.IPv4Network(
+                        argv[index]).network_address
+                    end_ip = ipaddress.IPv4Network(
+                        argv[index]).broadcast_address
                 else:
                     start_ip = argv[index]
                     end_ip = argv[index + 1]
             except IndexError:
-                print('\nERROR: Incorrect use of ip range. Use CIDR notation or give two ip addresses separeted by space.')
+                print(
+                    '\nERROR: Incorrect use of ip range. Use CIDR notation or give two ip addresses separeted by space.')
                 print('EXAMPLE: \n-ipr 192.168.1.1 192.168.1.10\n-ipr 192.168.1.0/24')
                 raise SystemExit
             execute = True
@@ -383,8 +392,10 @@ def main():
                 oid = argv[index]
                 value = argv[index + 1]
             except IndexError:
-                print('\nERROR: Incorrect use of set. Give OID and value separeted by space.\n')
-                print('EXAMPLE: \n-ip 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
+                print(
+                    '\nERROR: Incorrect use of set. Give OID and value separeted by space.\n')
+                print(
+                    'EXAMPLE: \n-ip 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
                 raise SystemExit
             write = True
             execute = True
@@ -393,8 +404,10 @@ def main():
             try:
                 serialnumber = argv[index]
             except IndexError:
-                print('\nERROR: Incorrect use of find serial. No value given for one or more required parameters.')
-                print('EXAMPLE: \n-f AA2K027512345 -ipr 192.168.1.1 192.168.1.10\n-f AA2K027512345 -ipr 192.168.1.0/24')
+                print(
+                    '\nERROR: Incorrect use of find serial. No value given for one or more required parameters.')
+                print(
+                    'EXAMPLE: \n-f AA2K027512345 -ipr 192.168.1.1 192.168.1.10\n-f AA2K027512345 -ipr 192.168.1.0/24')
                 raise SystemExit
             execute = True
 
@@ -407,8 +420,10 @@ def main():
         dataset = {}
         dataset[oid] = value
         if (address is None):
-            print('\nERROR: IP address not given. --set also requires use of --ip_address or -ip\n')
-            print('EXAMPLE: \n-ip_address 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
+            print(
+                '\nERROR: IP address not given. --set also requires use of --ip_address or -ip\n')
+            print(
+                'EXAMPLE: \n-ip_address 192.168.1.10 --set .1.3.6.1.2.1.1.6.0 "new location"')
             raise SystemExit
         results = snmp_set(address, dataset, community)
 
@@ -416,15 +431,22 @@ def main():
             print('Values successfully writen to device.')
             print(results)
         else:
-            print('Were not able to write data to device. Please check OID and communityname.')
+            print(
+                'Were not able to write data to device. Please check OID and communityname.')
 
     if (write is False and address is not None):
         print(f'Connecting to address: {address}')
-        print(snmp_get(address, community))
+        result = snmp_get(address, community)
+        print(result)
+        with open('device_data.csv', 'a') as f:
+            for key, value in result.items():
+                f.write(f'{value};')
+            f.write('\n')
 
-    if (execute):
-        if (serialnumber is not None and start_ip is None or end_ip is None):
-            print('\nERROR: IP address range not given. --find_serial also requires use of --ip_range or -ipr\n')
+    if (execute and address is None):
+        if (serialnumber is not None and (start_ip is None or end_ip is None)):
+            print(
+                '\nERROR: IP address range not given. --find_serial also requires use of --ip_range or -ipr\n')
             print('EXAMPLE: \n-f AA2K027512345 -ipr 192.168.1.1 192.168.1.10\n-f AA2K027512345 -ipr 192.168.1.0/24')
             raise SystemExit
         if (start_ip is not None and end_ip is not None):
@@ -433,6 +455,7 @@ def main():
             else:
                 active = ping_sweep(start_ip, end_ip)
 
+        result = dict()
         if (len(active) > 0):
             data = []
             if (serialnumber is not None):
@@ -444,16 +467,19 @@ def main():
         if (len(data) > 0):
             difference = len(active) - len(data)
             if (difference != 0):
-                print(f'Data received from {len(data)} device(s). Were not able to get any data from {difference} device(s).')
+                print(
+                    f'Data received from {len(data)} device(s). Were not able to get any data from {difference} device(s).')
             else:
                 print(f'Data received from {len(data)} device(s).')
             to_csv(data)
         elif (len(result) > 0):
-            print(f'\nFound device with serialnumber {serialnumber} from address {result["response_address"]}.\n')
+            print(
+                f'\nFound device with serialnumber {serialnumber} from address {result["response_address"]}.\n')
         elif (len(result) == 0):
             print(f'\nNo device found with serialnumber {serialnumber}.\n')
         else:
-            print(f'Were not able to get any data from {len(active)} device(s).')
+            print(
+                f'Were not able to get any data from {len(active)} device(s).')
             print(active)
 
 
