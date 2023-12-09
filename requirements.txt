@@ -8,7 +8,7 @@ pyasn1==0.4.8
 pycodestyle==2.6.0
 pycryptodomex==3.9.8
 pyflakes==2.2.0
-PyInstaller==3.6
+PyInstaller==5.13.1
 pysmi==0.3.4
 pysnmp==4.4.12
 pythonping==1.0.10
