@@ -1,15 +1,3 @@
-﻿altgraph==0.17
-flake8==3.8.3
-future==0.18.3
-mccabe==0.6.1
-pefile==2019.4.18
-ply==3.11
-pyasn1==0.4.8
-pycodestyle==2.6.0
-pycryptodomex==3.9.8
-pyflakes==2.2.0
-PyInstaller==3.6
-pysmi==0.3.4
-pysnmp==4.4.12
+﻿pysnmp==4.4.12
 pythonping==1.0.10
-pywin32-ctypes==0.2.0
+
